@@ -1,0 +1,8 @@
+[package]
+name = "digital_logic"
+version = "0.1.0"
+edition = "2024"
+default-run = "digital_logic"
+
+[dependencies]
+engine = { path = "../engine" }
