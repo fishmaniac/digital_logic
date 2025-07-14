@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use sdl3::init;
 
 use crate::{
-    ecs::{entities::Entities, events::{Event, Events}},
+    ecs::{entities::Entities, events::Events},
     input::{ExitStatus, InputEvent, Input},
     renderer::Renderer
 };
@@ -20,7 +20,7 @@ impl Engine {
             Ok(sdl) => sdl,
             Err(e) => return Err(e.to_string()),
         };
-        let window = match Renderer::new(&sdl) {
+        let renderer = match Renderer::new(&sdl) {
             Ok(window) => window,
             Err(e) => return Err(e.to_string()),
         };
@@ -28,11 +28,11 @@ impl Engine {
             Ok(input) => input,
             Err(e) => return Err(e.to_string()),
         };
-        let entities = Entities::new();
-        let events = Events::new();
+        let mut entities = Entities::new();
+        let events = Events::new(&mut entities);
 
         Ok(Self {
-            renderer: window,
+            renderer,
             input,
             entities,
             events,
@@ -45,9 +45,9 @@ impl Engine {
         let mut frame_count = 0;
 
         loop {
-            let (exit_status, input_events) = self.input.poll_input();
+            let exit_status = self.input.poll_input();
 
-            self.events(input_events);
+            self.events();
             self.update();
             self.render();
 
@@ -75,8 +75,8 @@ impl Engine {
         Ok(())
     }
 
-    fn events(&mut self, input_events: Vec<InputEvent>) {
-        let events = self.events.handle_input_events(input_events);
+    fn events(&mut self) {
+        let events = self.events.handle_input_events(&self.input);
         for event in events {
             self.events.handle_callback(&mut self.entities, event);
         }

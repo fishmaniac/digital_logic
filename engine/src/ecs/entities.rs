@@ -2,16 +2,19 @@ use std::{any::Any, collections::HashMap};
 
 use sdl3::{render::Canvas, video::{Window, WindowContext}};
 
-use super::{components::{Components, EngineComponent, Position, Rect}, entity::Entity, events::Event};
-
+use super::{components::{ColorRGB, Components, EngineComponent, Position, Rect}, entity::Entity, events::{Event, Events}};
 
 impl ComponentStorage for Position {
     fn get_component(entities: &mut Entities, entity_id: u32) -> Option<&mut Self> {
         entities.position_components
             .get_mut(entity_id as usize).and_then(|position| position.as_mut())
     }
-    fn listener(entities: &mut Entities, entity_id: u32, event: Event) {
-        todo!();
+    fn listener(entities: &mut Entities, entity_id: u32, event: &Event) {
+        
+    }
+    fn create(entities: &mut Entities, component: EngineComponent) -> u32 {
+        entities.create_component(component);
+        entities.create_entity()
     }
 }
 
@@ -20,7 +23,7 @@ impl ComponentStorage for Rect {
         entities.rect_components
             .get_mut(entity_id as usize).and_then(|position| position.as_mut())
     }
-    fn listener(entities: &mut Entities, entity_id: u32, event: Event) {
+    fn listener(entities: &mut Entities, entity_id: u32, event: &Event) {
         match event {
             Event::Position(_, _) => {
                 let mut position = entities.get_component_mut::<Position>(entity_id);
@@ -39,8 +42,21 @@ impl ComponentStorage for Rect {
                     None => (),
                 }
             },
-            Event::LeftClick(_, _) => todo!(),
+            Event::LeftClick(_, _) => {},
         }
+    }
+    fn create(entities: &mut Entities, component: EngineComponent) -> u32 {
+        match &component {
+            EngineComponent::Rect(rect) => {
+                entities.create_component(EngineComponent::Position(Position::new(
+                    rect.rect.x,
+                    rect.rect.y
+                )));
+            },
+            _ => println!("Invalid create for Rect"),
+        };
+        entities.create_component(component);
+        entities.create_entity()
     }
 }
 
@@ -48,7 +64,8 @@ pub trait ComponentStorage {
     fn get_component(entities: &mut Entities, entity_id: u32) -> Option<&mut Self>
 where
         Self: Sized;
-    fn listener(entities: &mut Entities, entity_id: u32, event: Event);
+    fn listener(entities: &mut Entities, entity_id: u32, event: &Event);
+    fn create(entities: &mut Entities, component: EngineComponent) -> u32;
 }
 
 pub struct Entities {
@@ -84,10 +101,11 @@ impl Entities {
         println!("Created entity: {}", id);
         id
     }
-    pub fn create_rect_entity(&mut self, x: i32, y: i32, width: u32, height: u32) -> u32 {
-        self.create_component(EngineComponent::Position(Position::new(x, y)));
-        self.create_component(EngineComponent::Rect(Rect::new(x, y, width, height)));
-        self.create_entity()
+    pub fn create<Component: ComponentStorage>(
+        &mut self,
+        component: EngineComponent
+    ) -> u32 {
+        Component::create(self, component)
     }
     pub(crate) fn create_component(&mut self, component_type: EngineComponent) {
         match component_type {

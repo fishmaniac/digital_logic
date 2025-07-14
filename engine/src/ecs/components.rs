@@ -15,9 +15,6 @@ impl Position {
             y,
         }
     }
-    pub fn update(&mut self) {
-        println!("Updating position");
-    }
     pub fn movement_callback(&mut self, event: &Event) {
         match event {
             Event::Position(x, y) => {
@@ -26,30 +23,47 @@ impl Position {
             },
             Event::LeftClick(_, _) => todo!(),
         }
-        println!("Movement listener {}, {}", self.x, self.y);
+        // println!("Movement listener {}, {}", self.x, self.y);
     }
 }
 
-pub(crate) struct Rect {
+pub struct ColorRGB {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+impl ColorRGB {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self {
+            r,
+            g,
+            b,
+        }
+    }
+}
+impl From<ColorRGB> for Color {
+    fn from(rgb: ColorRGB) -> Self {
+        Color::RGB(rgb.r, rgb.g, rgb.b)
+    }
+}
+
+pub struct Rect {
     pub rect: SdlRect,
     pub color: Color,
 }
 impl Rect {
-    pub fn new(x: i32, y: i32, width: u32, height: u32) -> Self {
+    pub fn new(x: i32, y: i32, width: u32, height: u32, color: ColorRGB) -> Self {
         Self {
             rect: SdlRect::new(x, y, width, height),
-            color: Color::RGB(0, 255, 255),
+            color: color.into(),
         }
-    }
-    pub fn update(&mut self) {
-        println!("Update rect");
     }
     pub fn set_position(&mut self, position: Position) {
         self.rect.set_x(position.x);
         self.rect.set_y(position.y);
     }
     pub fn mouse_contains(&mut self, x: i32, y: i32) -> bool {
-        false
+        self.rect.contains_point((x, y))
     }
 }
 
@@ -60,16 +74,16 @@ pub enum EngineComponent {
 }
 
 impl EngineComponent {
-    pub fn update(&mut self) {
-        match self {
-            EngineComponent::Position(position) => position.update(),
-            EngineComponent::Rect(rect) => rect.update(),
-            EngineComponent::Draggable => {},
-        }
-    }
+    // pub fn update(&mut self) {
+    //     match self {
+    //         EngineComponent::Position(position) => position.update(),
+    //         EngineComponent::Rect(rect) => rect.update(),
+    //         EngineComponent::Draggable => {},
+    //     }
+    // }
 }
 
-trait GameComponent {
+pub trait GameComponent {
     fn update(&mut self, entity: &Entity);
 }
 

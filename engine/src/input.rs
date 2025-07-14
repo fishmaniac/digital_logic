@@ -2,7 +2,7 @@ use sdl3::{
     event::Event, keyboard::Keycode, mouse::MouseButton, rect::Rect, EventPump, Sdl
 };
 
-use std::error::Error;
+use std::{collections::HashSet, error::Error};
 
 pub(crate) enum ExitStatus {
     Continue,
@@ -19,7 +19,10 @@ pub enum InputEvent {
 }
 
 pub struct Input {
-    event_pump: EventPump
+    event_pump: EventPump,
+    pub pressed_keys: HashSet<Keycode>,
+    pub pressed_mouse: HashSet<MouseButton>,
+    pub position_mouse: (i32, i32),
 }
 
 impl Input {
@@ -27,9 +30,12 @@ impl Input {
         let event_pump = sdl_context.event_pump()?;
         Ok(Input {
             event_pump,
+            pressed_keys: HashSet::new(),
+            pressed_mouse: HashSet::new(),
+            position_mouse: (0, 0),
         })
     }
-    fn get_input(event: Event) -> (ExitStatus, Option<InputEvent>) {
+    fn input(event: Event) -> (ExitStatus, Option<InputEvent>) {
         match event {
             Event::Quit { .. }
             | Event::KeyUp {
@@ -65,24 +71,53 @@ impl Input {
             _ => (ExitStatus::Continue, None),
         }
     }
-    pub(crate) fn poll_input(&mut self) -> (ExitStatus, Vec<InputEvent>) {
-        let mut events = Vec::new();
-
-        for event in self.event_pump.poll_iter() {
-            let (status, maybe_event) = Self::get_input(event);
-
-            if let Some(e) = maybe_event {
-                events.push(e);
+    pub fn keyboard_input(pressed_keys: &mut HashSet<Keycode>, event: &Option<InputEvent>) {
+        if let Some(event) = event {
+            match event {
+                InputEvent::KeyDown(keycode) => {
+                    pressed_keys.insert(*keycode);
+                }
+                InputEvent::KeyUp(keycode) => {
+                    pressed_keys.remove(&keycode);
+                }
+                // InputEvent::MouseMotion { x, y } => self.mouse_position = (x, y),
+                _ => {},
             }
+        }
+    }
+    pub fn mouse_input(pressed_mouse: &mut HashSet<MouseButton>, mouse_position: &mut (i32, i32), event: &Option<InputEvent>) {
+        if let Some(event) = event {
+            match event {
+                InputEvent::MouseMotion { x, y } => {
+                    let (ref mut mouse_x, ref mut mouse_y) = *mouse_position;
+                    *mouse_x = *x;
+                    *mouse_y = *y;
+                },
+                InputEvent::MouseButtonDown { x, y, button } => {
+                    pressed_mouse.insert(*button);
+                },
+                InputEvent::MouseButtonUp { x, y, button } => {
+                    pressed_mouse.remove(&button);
+                },
+                _ => {},
+            }
+        }
+    }
+
+    pub(crate) fn poll_input(&mut self) -> ExitStatus {
+        for event in self.event_pump.poll_iter() {
+            let (status, event) = Self::input(event);
+            let pressed_keys = &mut self.pressed_keys;
+            Self::keyboard_input(pressed_keys, &event);
+            let pressed_mouse = &mut self.pressed_mouse;
+            let position_mouse = &mut self.position_mouse;
+            Self::mouse_input(pressed_mouse, position_mouse, &event);
 
             if let ExitStatus::Exit | ExitStatus::Error(_) = status {
-                return (status, events);
+                return status;
             }
         }
 
-        (ExitStatus::Continue, events)
-    }
-    pub fn rect_contains_mouse(rect: Rect, mouse_pos: (i32, i32)) -> bool {
-        return rect.contains_point(mouse_pos)
+        ExitStatus::Continue
     }
 }

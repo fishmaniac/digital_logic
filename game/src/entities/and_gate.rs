@@ -1,8 +1,6 @@
 use std::{any::Any, collections::HashMap};
 
-use engine::{
-    ecs::{entity::{Draggable, Entity, RectEntity, Texturable, TextureEntity}, entity_manager::EntityManager}, input::GameEvent, renderer::Renderable, update::{DraggableEventHandler, EventHandler, Updatable}, Canvas, Color, Rect, SdlWindow, Texture
-};
+use engine::{ecs::{entity::{Draggable, Entity, RectEntity, Texturable, TextureEntity}, entity_manager::EntityManager}, input::GameEvent, renderer::Renderable, update::{DraggableEventHandler, EventHandler, Updatable}, Canvas, Color, Rect, SdlWindow, Texture};
 
 use super::node::NodeConnection;
 
