@@ -1,62 +1,51 @@
-use sdl3::{
-    render::{Canvas, ScaleMode, Texture, TextureCreator},
-    surface::Surface,
-    video::{Window, WindowContext}
-};
+use sdl3::video::{Window, WindowContext};
+use sdl3::Sdl;
+use sdl3::render::{Canvas, TextureCreator};
+use sdl3::pixels::Color;
 
-use std::path::Path;
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::error::Error;
 
-use std::collections::HashMap;
+use crate::ecs::components::EngineComponent;
+use crate::ecs::entities::Entities;
 
-pub trait Renderable {
-    fn render(&self, canvas: &mut Canvas<Window>, textures: &HashMap<String, Texture>);
-    fn z(&self) -> u32 {
-        0
-    }
+pub struct Renderer {
+    pub canvas: Canvas<Window>,
+    texture_creator: TextureCreator<WindowContext>,
+    background_color: Color,
 }
 
-pub struct Renderer<'t> {
-    renderables: BTreeMap<u32, Vec<Rc<RefCell<dyn Renderable>>>>,
-    textures: HashMap<String, Texture<'t>>,
-    texture_creator: &'t TextureCreator<WindowContext>,
-}
+impl Renderer {
+    pub fn new(sdl_context: &Sdl) -> Result<Self, Box<dyn Error>> {
+        let video_subsystem = sdl_context.video()?;
 
-impl<'t> Renderer<'t> {
-    pub fn new(texture_creator: &'t TextureCreator<WindowContext>) -> Self {
-        Renderer {
-            renderables: BTreeMap::new(),
-            textures: HashMap::new(),
+        let window = video_subsystem
+            .window("Digital Logic", 800, 600)
+            .position_centered()
+            .resizable()
+            .build()?;
+
+        let mut canvas = window.into_canvas();
+        let texture_creator = canvas.texture_creator();
+
+        let background_color = Color::RGB(100, 149, 237);
+        canvas.set_draw_color(background_color);
+        canvas.clear();
+        canvas.present();
+
+        Ok(Renderer {
+            canvas,
             texture_creator,
-        }
+            background_color,
+        })
     }
-
-    pub fn add_renderable(&mut self, renderable: Rc<RefCell<dyn Renderable>>) {
-        let z = renderable.borrow().z();
-        self.renderables.entry(z).or_default().push(renderable);
+    pub fn clear(&mut self) {
+        self.canvas.set_draw_color(self.background_color);
+        self.canvas.clear();
     }
-
-    pub fn add_texture(&mut self, texture_path: String) {
-        if self.textures.contains_key(&texture_path) {
-            return;
-        }
-        let surface = Surface::load_bmp(Path::new(&texture_path))
-            .expect("Failed to load BMP");
-        let mut texture = self.texture_creator
-            .create_texture_from_surface(&surface)
-            .expect("Failed to create texture");
-        texture.set_scale_mode(ScaleMode::Nearest);
-
-        self.textures.insert(texture_path, texture);
+    pub fn present(&mut self) {
+        self.canvas.present();
     }
-
-    pub fn render(&self, canvas: &mut Canvas<Window>) {
-        for (_z, items) in &self.renderables {
-            for item in items {
-                item.borrow().render(canvas, &self.textures);
-            }
-        }
+    pub fn render(&mut self, entities: &Entities) {
+        entities.render(&mut self.canvas);
     }
 }

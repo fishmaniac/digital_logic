@@ -7,11 +7,10 @@ use std::error::Error;
 pub(crate) enum ExitStatus {
     Continue,
     Exit,
-    _Error(Box<dyn Error>),
+    Error(Box<dyn Error>),
 }
 
-#[derive(Debug)]
-pub enum GameEvent {
+pub enum InputEvent {
     KeyDown(Keycode),
     KeyUp(Keycode),
     MouseMotion { x: i32, y: i32 },
@@ -30,7 +29,7 @@ impl Input {
             event_pump,
         })
     }
-    fn get_event(event: Event) -> (ExitStatus, Option<GameEvent>) {
+    fn get_input(event: Event) -> (ExitStatus, Option<InputEvent>) {
         match event {
             Event::Quit { .. }
             | Event::KeyUp {
@@ -38,26 +37,26 @@ impl Input {
                 ..
             } => (ExitStatus::Exit, None),
             Event::KeyDown { keycode: Some(key), .. } => {
-                (ExitStatus::Continue, Some(GameEvent::KeyDown(key)))
+                (ExitStatus::Continue, Some(InputEvent::KeyDown(key)))
             }
             Event::KeyUp { keycode: Some(key), .. } => {
-                (ExitStatus::Continue, Some(GameEvent::KeyUp(key)))
+                (ExitStatus::Continue, Some(InputEvent::KeyUp(key)))
             }
             Event::MouseMotion { x, y, .. } => {
-                (ExitStatus::Continue, Some(GameEvent::MouseMotion {
+                (ExitStatus::Continue, Some(InputEvent::MouseMotion {
                     x: x as i32,
                     y: y as i32,
                 }))
             }
             Event::MouseButtonDown { x, y, mouse_btn, .. } => {
-                (ExitStatus::Continue, Some(GameEvent::MouseButtonDown {
+                (ExitStatus::Continue, Some(InputEvent::MouseButtonDown {
                     x: x as i32,
                     y: y as i32,
                     button: mouse_btn,
                 }))
             }
             Event::MouseButtonUp { x, y, mouse_btn, .. } => {
-                (ExitStatus::Continue, Some(GameEvent::MouseButtonUp {
+                (ExitStatus::Continue, Some(InputEvent::MouseButtonUp {
                     x: x as i32,
                     y: y as i32,
                     button: mouse_btn,
@@ -66,17 +65,17 @@ impl Input {
             _ => (ExitStatus::Continue, None),
         }
     }
-    pub(crate) fn poll_events(&mut self) -> (ExitStatus, Vec<GameEvent>) {
+    pub(crate) fn poll_input(&mut self) -> (ExitStatus, Vec<InputEvent>) {
         let mut events = Vec::new();
 
         for event in self.event_pump.poll_iter() {
-            let (status, maybe_event) = Self::get_event(event);
+            let (status, maybe_event) = Self::get_input(event);
 
             if let Some(e) = maybe_event {
                 events.push(e);
             }
 
-            if let ExitStatus::Exit | ExitStatus::_Error(_) = status {
+            if let ExitStatus::Exit | ExitStatus::Error(_) = status {
                 return (status, events);
             }
         }
