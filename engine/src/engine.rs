@@ -1,46 +1,53 @@
-use std::time::Instant;
-use std::{error::Error, time::Duration};
+use std::time::{Duration, Instant};
 
-use sdl3::{render::TextureCreator, video::WindowContext, Sdl};
+use sdl3::init;
 
-use crate::input::{ExitStatus, GameEvent};
 use crate::{
-    input::Input, renderer::Renderer, window::Window
+    ecs::{entities::Entities, events::{Event, Events}},
+    input::{ExitStatus, Input, InputEvent},
+    renderer::Renderer
 };
-use crate::ecs::entity_manager::EntityManager;
 
-pub struct Engine <'t> {
-    pub window: Window,
+pub struct Engine {
+    pub renderer: Renderer,
     pub input: Input,
-    pub entities: EntityManager,
-    pub renderer: Renderer<'t>,
+    pub entities: Entities,
+    pub events: Events,
 }
-impl <'t> Engine <'t> {
-    pub fn new(sdl: Sdl, window: Window, texture_creator: &'t TextureCreator<WindowContext>) -> Result<Self, String> {
+impl Engine {
+    pub fn new() -> Result<Self, String> {
+        let sdl = match init() {
+            Ok(sdl) => sdl,
+            Err(e) => return Err(e.to_string()),
+        };
+        let renderer = match Renderer::new(&sdl) {
+            Ok(window) => window,
+            Err(e) => return Err(e.to_string()),
+        };
         let input = match Input::new(&sdl) {
             Ok(input) => input,
             Err(e) => return Err(e.to_string()),
         };
-        let entities = EntityManager::new();
-        let renderer = Renderer::new(&texture_creator);
+        let entities = Entities::new();
+        let events = Events::new();
 
         Ok(Self {
-            window,
+            renderer,
             input,
             entities,
-            renderer,
+            events,
         })
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<(), String>{
         let mut last_time = Instant::now();
         let mut fps_timer = Instant::now();
         let mut frame_count = 0;
 
         loop {
-            let (exit_status, game_events) = self.input.poll_events();
+            let exit_status = self.input.poll_input();
 
-            self.events(game_events);
+            self.events();
             self.update();
             self.render();
 
@@ -55,45 +62,34 @@ impl <'t> Engine <'t> {
             match exit_status {
                 ExitStatus::Continue => {},
                 ExitStatus::Exit => break,
-                ExitStatus::_Error(e) => panic!("Exit status error: {}", e),
+                ExitStatus::Error(e) => return Err(e.to_string()),
             }
 
-            let frame_duration = Duration::from_secs_f64(1.0 / 30.0);
+            let frame_duration = Duration::from_secs_f64(1.0 / 60.0);
             let elapsed = last_time.elapsed();
             if elapsed < frame_duration {
                 std::thread::sleep(frame_duration - elapsed);
             }
             last_time = Instant::now();
         }
+        Ok(())
     }
 
-    // pub fn start(&mut self) {
-    //     loop {
-    //         let (exit_status, game_events) = self.input.poll_events();
-    //
-    //         self.events(game_events);
-    //         self.update();
-    //         self.render();
-    //
-    //         match exit_status {
-    //             ExitStatus::Continue => {},
-    //             ExitStatus::Exit => break,
-    //             ExitStatus::_Error(e) => panic!("Exit status error: {}", e),
-    //         }
-    //     }
-    // }
-
-    fn events(&mut self, events: Vec<GameEvent>) {
-        self.entities.handle_events(events);
+    fn events(&mut self) {
+        let mut events = self.events.handle_input_events(&self.input);
+        // TODO: handle StateUpdate
+        events.push(Event::StateUpdate);
+        for event in events {
+            self.events.handle_callback(&mut self.entities, event);
+        }
     }
 
     fn update(&mut self) {
-        self.entities.update_entities();
     }
 
     fn render(&mut self) {
-        self.window.clear();
-        self.renderer.render(&mut self.window.canvas);
-        self.window.present();
+        self.renderer.clear();
+        self.renderer.render(&self.entities);
+        self.renderer.present();
     }
 }
