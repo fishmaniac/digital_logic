@@ -11,7 +11,6 @@ impl ComponentStorage for Position {
     }
     fn create(entities: &mut Entities, component: EngineComponent) {
         entities.create_component(component);
-        // entities.create_entity()
     }
 }
 
@@ -36,13 +35,11 @@ impl Position {
     }
     pub fn movement_callback(&mut self, event: &Event) {
         match event {
-            Event::StateUpdate => {},
             Event::Position(x, y) => {
                 self.x += x;
                 self.y += y;
             },
-            Event::LeftClick(_, _) => todo!(),
+            _ => {},
         }
-        // println!("Movement listener {}, {}", self.x, self.y);
     }
 }

@@ -1,13 +1,17 @@
+use std::{any::Any, fmt};
+
 use sdl3::pixels::Color;
 
-use super::{entity::Entity, events::Event, state::StateStorage};
+use super::events::Event;
 use crate::ecs::{
-    components::{position::Position, rect::Rect},
+    components::{draggable::Draggable, position::Position, rect::Rect, state::StateStorage},
     entities::Entities
 };
 
 pub mod position;
 pub mod rect;
+pub mod state;
+pub mod draggable;
 
 // TODO: move to renderer
 pub struct ColorRGB {
@@ -38,7 +42,8 @@ where
     fn create(entities: &mut Entities, component: EngineComponent);
 }
 
-pub enum ComponentType {
+#[derive(Debug)]
+pub enum Component {
     Engine(EngineComponent),
     Game(Box<dyn GameComponent>),
 }
@@ -47,12 +52,12 @@ pub enum ComponentType {
 pub enum EngineComponent {
     Position(Position),
     Rect(Rect),
-    Draggable,
+    Draggable(Draggable),
     State(Box<dyn StateStorage>)
 }
 
-pub trait GameComponent {
-    fn update(&mut self, entity: &Entity);
+pub trait GameComponent : fmt::Debug + Any {
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 pub struct Components {

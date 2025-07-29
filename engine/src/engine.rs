@@ -76,12 +76,8 @@ impl Engine {
     }
 
     fn events(&mut self) {
-        let mut events = self.events.handle_input_events(&self.input);
-        // TODO: handle StateUpdate
-        events.push(Event::StateUpdate);
-        for event in events {
-            self.events.handle_callback(&mut self.entities, event);
-        }
+        let events = self.events.tick_events(&self.input);
+        self.events.handle_events(&mut self.entities, events);
     }
 
     fn update(&mut self) {

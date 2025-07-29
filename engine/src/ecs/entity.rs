@@ -1,8 +1,3 @@
-use super::components::{EngineComponent, rect::Rect};
-
-pub trait GameEntity {
-}
-
 pub struct Entity {
     pub id: u32,
 }

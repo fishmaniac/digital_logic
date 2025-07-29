@@ -27,9 +27,22 @@ impl Rect {
             color: color.into(),
         }
     }
-    pub fn set_position(&mut self, position: Position) {
+    fn position(&mut self, position: Position) {
         self.rect.set_x(position.x());
         self.rect.set_y(position.y());
+    }
+    pub fn set_position(entities: &mut Entities, entity_id: u32) {
+        let position = entities.get_component_mut::<Position>(entity_id);
+        let position = match position {
+            Some(position) => position.clone(),
+            None => return println!("No position for set_position entity_id {}", entity_id),
+        };
+
+        let rect = entities.get_component_mut::<Rect>(entity_id);
+        let rect = match rect {
+            Some(rect) => rect.position(position),
+            None => return println!("No rect for set_rect entity_id {}", entity_id),
+        };
     }
     pub fn contains(&mut self, x: i32, y: i32) -> bool {
         self.rect.contains_point((x, y))
@@ -50,6 +63,7 @@ impl ComponentStorage for Rect {
     }
     fn listener(entities: &mut Entities, entity_id: u32, event: &Event) {
         match event {
+            Event::ComponentUpdate => {},
             Event::StateUpdate => {}
             Event::Position(_, _) => {
                 let mut position = entities.get_component_mut::<Position>(entity_id);
@@ -62,7 +76,9 @@ impl ComponentStorage for Rect {
                 match rect {
                     Some(rect) => {
                         if let Some(position) = position {
-                            rect.set_position(position);
+                            // TODO: use set_position instead
+                            // remove temp movement callback updates from Position
+                            rect.position(position);
                         }
                     }
                     None => (),
