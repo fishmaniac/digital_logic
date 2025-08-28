@@ -1,12 +1,18 @@
 use engine::{
-    create_entity, ecs::components::{rect::Rect, ColorRGB, ComponentStorage, EngineComponent}, engine::Engine
+    create_entity,
+    ecs::components::{ColorRGB, ComponentStorage, EngineComponent, rect::Rect},
+    engine::Engine,
 };
 use entities::and::AndGate;
 
+use crate::global_state::GlobalState;
+
 mod entities;
+mod global_state;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut engine = match Engine::new() {
+    let global_state = GlobalState::new();
+    let mut engine = match Engine::new(global_state) {
         Ok(engine) => engine,
         Err(e) => return Err(e.into()),
     };
@@ -32,9 +38,12 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let id = create_entity!(
         &mut engine.entities,
         &mut engine.events,
-        (Rect, EngineComponent::Rect(Rect::new(300, 400, 100, 100, ColorRGB::new(0, 255, 0)))),
+        (
+            Rect,
+            EngineComponent::Rect(Rect::new(300, 400, 100, 100, ColorRGB::new(0, 255, 0)))
+        ),
     );
-    engine.events.add_listener(id, Rect::listener);
+    engine.events.add_entity_listener(id, Rect::entity_listener);
 
     let id = engine.entities.create_entity();
     println!("Game Entity id: {:?}", id);
@@ -42,9 +51,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let entity = engine.entities.get_entity(id).unwrap();
 
     let and = AndGate::new(&mut engine.entities, &mut engine.events);
+    let and = AndGate::new(&mut engine.entities, &mut engine.events);
 
     match engine.start() {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => return Err(e.into()),
     }
 

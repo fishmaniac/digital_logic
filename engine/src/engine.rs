@@ -3,9 +3,12 @@ use std::time::{Duration, Instant};
 use sdl3::init;
 
 use crate::{
-    ecs::{entities::Entities, events::{Event, Events}},
+    ecs::{
+        entities::{Entities, GlobalState},
+        events::{Event, Events},
+    },
     input::{ExitStatus, Input, InputEvent},
-    renderer::Renderer
+    renderer::Renderer,
 };
 
 pub struct Engine {
@@ -15,7 +18,7 @@ pub struct Engine {
     pub events: Events,
 }
 impl Engine {
-    pub fn new() -> Result<Self, String> {
+    pub fn new(global_state: impl GlobalState + 'static) -> Result<Self, String> {
         let sdl = match init() {
             Ok(sdl) => sdl,
             Err(e) => return Err(e.to_string()),
@@ -28,7 +31,7 @@ impl Engine {
             Ok(input) => input,
             Err(e) => return Err(e.to_string()),
         };
-        let entities = Entities::new();
+        let entities = Entities::new(global_state);
         let events = Events::new();
 
         Ok(Self {
@@ -39,7 +42,7 @@ impl Engine {
         })
     }
 
-    pub fn start(&mut self) -> Result<(), String>{
+    pub fn start(&mut self) -> Result<(), String> {
         let mut last_time = Instant::now();
         let mut fps_timer = Instant::now();
         let mut frame_count = 0;
@@ -60,12 +63,12 @@ impl Engine {
             }
 
             match exit_status {
-                ExitStatus::Continue => {},
+                ExitStatus::Continue => {}
                 ExitStatus::Exit => break,
                 ExitStatus::Error(e) => return Err(e.to_string()),
             }
 
-            let frame_duration = Duration::from_secs_f64(1.0 / 60.0);
+            let frame_duration = Duration::from_secs_f64(1.0 / 120.0);
             let elapsed = last_time.elapsed();
             if elapsed < frame_duration {
                 std::thread::sleep(frame_duration - elapsed);
@@ -76,12 +79,10 @@ impl Engine {
     }
 
     fn events(&mut self) {
-        let events = self.events.tick_events(&self.input);
-        self.events.handle_events(&mut self.entities, events);
+        self.events.handle_events(&mut self.entities, &self.input);
     }
 
-    fn update(&mut self) {
-    }
+    fn update(&mut self) {}
 
     fn render(&mut self) {
         self.renderer.clear();

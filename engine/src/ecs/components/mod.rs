@@ -4,14 +4,20 @@ use sdl3::pixels::Color;
 
 use super::events::Event;
 use crate::ecs::{
-    components::{draggable::Draggable, position::Position, rect::Rect, state::StateStorage},
-    entities::Entities
+    components::{
+        draggable::Draggable, line::Line, position::Position, rect::Rect, state::StateStorage,
+        texture_rect::TextureRect,
+    },
+    entities::Entities,
+    events::{self, EntityEvent, Events},
 };
 
+pub mod draggable;
+pub mod line;
 pub mod position;
 pub mod rect;
 pub mod state;
-pub mod draggable;
+pub mod texture_rect;
 
 // TODO: move to renderer
 pub struct ColorRGB {
@@ -21,11 +27,7 @@ pub struct ColorRGB {
 }
 impl ColorRGB {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
-        Self {
-            r,
-            g,
-            b,
-        }
+        Self { r, g, b }
     }
 }
 impl From<ColorRGB> for Color {
@@ -36,10 +38,16 @@ impl From<ColorRGB> for Color {
 
 pub trait ComponentStorage {
     fn get_mut(entities: &mut Entities, entity_id: u32) -> Option<&mut Self>
-where
+    where
         Self: Sized;
-    fn listener(entities: &mut Entities, entity_id: u32, event: &Event);
-    fn create(entities: &mut Entities, component: EngineComponent);
+    fn global_listener(
+        entities: &mut Entities,
+        entity_events: &mut events::EntityEvents,
+        entity_id: u32,
+        event: &Event,
+    );
+    fn entity_listener(entities: &mut Entities, entity_id: u32, event: &EntityEvent);
+    fn create(entities: &mut Entities, component: EngineComponent, events: &mut Events);
 }
 
 #[derive(Debug)]
@@ -52,11 +60,14 @@ pub enum Component {
 pub enum EngineComponent {
     Position(Position),
     Rect(Rect),
+    Line(Line),
+    Texture(TextureRect),
     Draggable(Draggable),
-    State(Box<dyn StateStorage>)
+    State(Box<dyn StateStorage>),
 }
 
-pub trait GameComponent : fmt::Debug + Any {
+pub trait GameComponent: fmt::Debug + Any {
+    fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 

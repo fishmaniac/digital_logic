@@ -1,14 +1,14 @@
-use sdl3::video::{Window, WindowContext};
 use sdl3::Sdl;
-use sdl3::render::{Canvas, TextureCreator};
 use sdl3::pixels::Color;
+use sdl3::render::{Canvas, TextureCreator};
+use sdl3::video::{Window, WindowContext};
 
 use std::error::Error;
 
 use crate::ecs::components::EngineComponent;
 use crate::ecs::entities::Entities;
 
-pub trait Renderable {
+pub(crate) trait Renderable {
     fn render(&self, canvas: &mut Canvas<Window>);
 }
 

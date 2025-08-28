@@ -1,7 +1,9 @@
+pub mod ecs;
 pub mod engine;
 pub mod input;
 pub mod renderer;
-pub mod ecs;
+
+pub use sdl3::{render::Canvas, video::Window};
 
 // pub fn add(left: u64, right: u64) -> u64 {
 //     left + right
